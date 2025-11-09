@@ -1,0 +1,14 @@
+{
+  "log_level": "INFO",
+  "response_timeout": 10,
+  "servers": [
+    {
+      "id": "alpha",
+      "command": ["python3", "tests/servers/minimal_server.py", "alpha"]
+    },
+    {
+      "id": "beta",
+      "command": ["python3", "tests/servers/minimal_server.py", "beta"]
+    }
+  ]
+}

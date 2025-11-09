@@ -10,7 +10,7 @@
   ```bash
   npx -y @modelcontextprotocol/inspector@latest --cli -- \
     --method tools/list \
-    python3 -m mcp_proxy.main --config /Users/tt/Desktop/mcp-proxy/config.everything.json
+    python3 -m mcp_proxy.main --config /Users/tt/Desktop/mcp-proxy/configs/config.everything.json
   ```
 - **Observed Behavior**
   - Inspector successfully connects to the proxy, the proxy launches everything server using newline framing, and the tool list contains prefixed entries such as `everything__echo`, `everything__add`, …
@@ -24,7 +24,7 @@
 - **Configuration Command**
   ```bash
   codex mcp add --env PYTHONPATH=/Users/tt/Desktop/mcp-proxy proxy -- \
-    python3 -m mcp_proxy.main --config /Users/tt/Desktop/mcp-proxy/config.everything.json
+    python3 -m mcp_proxy.main --config /Users/tt/Desktop/mcp-proxy/configs/config.everything.json
   ```
   This ensures the proxy package is on `PYTHONPATH` even when Codex launches it from another directory.
 - **Verification Steps**

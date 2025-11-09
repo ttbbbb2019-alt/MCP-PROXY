@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "config.test.json"
+CONFIG = ROOT / "configs" / "config.test.json"
 
 
 def _send(proc: subprocess.Popen, message: dict) -> None:

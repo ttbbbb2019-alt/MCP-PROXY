@@ -14,7 +14,7 @@ This produces `dist/index.js`, which the proxy launches via stdio.
 
 ## 2. Update the proxy configuration
 
-`config.everything.json` already references the built server:
+`configs/config.everything.json` already references the built server:
 
 ```json
 {
@@ -47,7 +47,7 @@ From `/Users/tt/Desktop/mcp-proxy`:
 ```bash
 npx -y @modelcontextprotocol/inspector@latest --cli -- \
   --method tools/list \
-  python3 -m mcp_proxy.main --config config.everything.json
+  python3 -m mcp_proxy.main --config configs/config.everything.json
 ```
 
 You should see the proxied tool names such as `everything::echo` and `everything::add`.
@@ -65,7 +65,7 @@ Add a server entry to `claude_desktop_config.json` (or via the MCP UI) that laun
         "-m",
         "mcp_proxy.main",
         "--config",
-        "/Users/tt/Desktop/mcp-proxy/config.everything.json"
+        "/Users/tt/Desktop/mcp-proxy/configs/config.everything.json"
       ],
       "cwd": "/Users/tt/Desktop/mcp-proxy"
     }

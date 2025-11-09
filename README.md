@@ -41,7 +41,7 @@
 
    MCP 客户端连接时只需把代理进程当作普通 Server，即可看到 `everything::search`、`everything::weather` 等聚合后的工具。
 
-   如果需要直接接入本地下载的官方 `everything` Server，可使用 `config.everything.json`，但要先在 `/Users/tt/cobo/servers/src/everything` 执行 `npm install` 与 `npm run build` 生成 `dist/index.js`：
+   如果需要直接接入本地下载的官方 `everything` Server，可使用 `configs/config.everything.json`，但要先在 `/Users/tt/cobo/servers/src/everything` 执行 `npm install` 与 `npm run build` 生成 `dist/index.js`：
 
    ```bash
    cd /Users/tt/cobo/servers/src/everything
@@ -52,13 +52,13 @@
    然后：
 
    ```bash
-   python -m mcp_proxy.main --config config.everything.json
+   python -m mcp_proxy.main --config configs/config.everything.json
    ```
 
    Inspector 客户端同理，进入 `/Users/tt/cobo/inspector` 执行 `npm install && npm run build` 后，运行：
 
    ```bash
-   node cli/build/cli.js --cli "python3 -m mcp_proxy.main --config config.everything.json" --method tools/list
+   node cli/build/cli.js --cli "python3 -m mcp_proxy.main --config configs/config.everything.json" --method tools/list
    ```
 
 ## 目录结构

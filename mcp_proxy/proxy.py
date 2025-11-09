@@ -11,8 +11,7 @@ from .config import ProxyConfig
 from .framing import JsonRpcStream
 from .jsonrpc import JsonRpcError, is_notification, is_request, is_response, make_error_response, make_result_response
 from .upstream import UpstreamServer
-from .auth import AuthManager
-from .ratelimit import RateLimiter
+from .security import AuthManager, RateLimiter
 
 PROXY_NAME = "mcp-proxy"
 PROXY_VERSION = "0.1.0"
