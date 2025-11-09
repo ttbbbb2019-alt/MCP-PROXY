@@ -110,4 +110,4 @@
 
 - 目前聚合游标基于 offset，未对不同服务的 `nextCursor` 做细粒度协调；下游存在大量数据时可考虑懒加载策略。
 - 未实现 `resources/templates/create`、`subscriptions` 等扩展方法，后续可按 MCP Spec 补全。
-- 未包含自动健康检查/重启，可在 `UpstreamServer` 增加探活与指数退避策略。
+- 包含自动健康检查/重启，但未包含指数退避策略，可在 `UpstreamServer` 增加。
