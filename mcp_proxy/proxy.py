@@ -15,6 +15,7 @@ from .upstream import UpstreamServer
 PROXY_NAME = "mcp-proxy"
 PROXY_VERSION = "0.1.0"
 TOOL_NAME_SEPARATOR = "::"
+SAFE_TOOL_SEPARATOR = "__"
 RESOURCE_SCHEME = "proxy://resource/"
 
 _LOGGER = logging.getLogger(__name__)
@@ -360,7 +361,7 @@ class ProxyRouter:
     def _wrap_tool_descriptor(self, alias: str, tool: dict) -> dict:
         result = deepcopy(tool)
         original_name = str(result.get("name"))
-        synthetic_name = f"{alias}{TOOL_NAME_SEPARATOR}{original_name}"
+        synthetic_name = f"{alias}{SAFE_TOOL_SEPARATOR}{original_name}"
         result["name"] = synthetic_name
         metadata = result.setdefault("metadata", {})
         metadata["proxy"] = {"server": alias, "originalName": original_name}
@@ -370,7 +371,7 @@ class ProxyRouter:
     def _wrap_prompt_descriptor(self, alias: str, prompt: dict) -> dict:
         result = deepcopy(prompt)
         original_name = str(result.get("name"))
-        synthetic_name = f"{alias}{TOOL_NAME_SEPARATOR}{original_name}"
+        synthetic_name = f"{alias}{SAFE_TOOL_SEPARATOR}{original_name}"
         result["name"] = synthetic_name
         metadata = result.setdefault("metadata", {})
         metadata["proxy"] = {"server": alias, "originalName": original_name}
@@ -401,16 +402,16 @@ class ProxyRouter:
     def _resolve_tool_name(self, synthetic_name: str) -> Tuple[str, str]:
         if synthetic_name in self.tool_registry:
             return self.tool_registry[synthetic_name]
-        if TOOL_NAME_SEPARATOR in synthetic_name:
-            alias, name = synthetic_name.split(TOOL_NAME_SEPARATOR, 1)
+        if SAFE_TOOL_SEPARATOR in synthetic_name:
+            alias, name = synthetic_name.split(SAFE_TOOL_SEPARATOR, 1)
             return alias, name
         raise JsonRpcError(-32602, f"Unknown tool {synthetic_name}")
 
     def _resolve_prompt_name(self, synthetic_name: str) -> Tuple[str, str]:
         if synthetic_name in self.prompt_registry:
             return self.prompt_registry[synthetic_name]
-        if TOOL_NAME_SEPARATOR in synthetic_name:
-            alias, name = synthetic_name.split(TOOL_NAME_SEPARATOR, 1)
+        if SAFE_TOOL_SEPARATOR in synthetic_name:
+            alias, name = synthetic_name.split(SAFE_TOOL_SEPARATOR, 1)
             return alias, name
         raise JsonRpcError(-32602, f"Unknown prompt {synthetic_name}")
 

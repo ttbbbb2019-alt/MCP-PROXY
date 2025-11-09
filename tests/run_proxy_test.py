@@ -72,13 +72,13 @@ def main() -> None:
 
         tools = _rpc(proc, 2, "tools/list", {})
         tool_names = sorted(tool["name"] for tool in tools["tools"])
-        assert tool_names == ["alpha::alpha-echo", "alpha::alpha-upper", "beta::beta-echo", "beta::beta-upper"]
+        assert tool_names == ["alpha__alpha-echo", "alpha__alpha-upper", "beta__beta-echo", "beta__beta-upper"]
 
         call = _rpc(
             proc,
             3,
             "tools/call",
-            {"name": "beta::beta-upper", "arguments": {"text": "hello"}},
+            {"name": "beta__beta-upper", "arguments": {"text": "hello"}},
         )
         assert "HELLO" in json.dumps(call)
 
@@ -90,7 +90,7 @@ def main() -> None:
         assert "payload from" in json.dumps(read)
 
         prompts = _rpc(proc, 6, "prompts/list", {})
-        assert any(prompt["name"].startswith("alpha::") for prompt in prompts["prompts"])
+        assert any(prompt["name"].startswith("alpha__") for prompt in prompts["prompts"])
 
         prompt_get = _rpc(proc, 7, "prompts/get", {"name": prompts["prompts"][0]["name"]})
         assert "You are" in json.dumps(prompt_get)
