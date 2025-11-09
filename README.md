@@ -39,7 +39,7 @@
 
 2. **运行代理**
 
-   ```bash
+```bash
    python -m mcp_proxy.main --config /path/to/config.json
 ```
 
