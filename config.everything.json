@@ -1,0 +1,19 @@
+{
+  "log_level": "INFO",
+  "response_timeout": 30,
+  "servers": [
+    {
+      "id": "everything",
+      "command": [
+        "node",
+        "/Users/tt/cobo/servers/src/everything/dist/index.js"
+      ],
+      "env": {
+        "LOG_LEVEL": "info"
+      },
+      "startup_timeout": 30,
+      "shutdown_grace": 5,
+      "stdio_mode": "newline"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-proxy"
+version = "0.1.0"
+description = "Aggregating proxy for Model Context Protocol servers"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = []
+

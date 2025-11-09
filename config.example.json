@@ -1,0 +1,16 @@
+{
+  "log_level": "INFO",
+  "response_timeout": 30,
+  "servers": [
+    {
+      "id": "everything",
+      "command": ["node", "/path/to/servers/dist/everything.js"],
+      "env": {
+        "NODE_ENV": "production"
+      },
+      "startup_timeout": 15,
+      "shutdown_grace": 2
+    }
+  ]
+}
+
