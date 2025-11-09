@@ -11,6 +11,8 @@ from .config import ProxyConfig
 from .framing import JsonRpcStream
 from .jsonrpc import JsonRpcError, is_notification, is_request, is_response, make_error_response, make_result_response
 from .upstream import UpstreamServer
+from .auth import AuthManager
+from .ratelimit import RateLimiter
 
 PROXY_NAME = "mcp-proxy"
 PROXY_VERSION = "0.1.0"
@@ -32,6 +34,8 @@ class ProxyRouter:
         self.servers: Dict[str, UpstreamServer] = {
             server_cfg.id: UpstreamServer(server_cfg, proxy=self) for server_cfg in config.servers
         }
+        self.auth_manager = AuthManager(config.auth_token)
+        self.rate_limiter = RateLimiter(config.rate_limit_per_minute)
         self.tool_registry: Dict[str, Tuple[str, str]] = {}
         self.prompt_registry: Dict[str, Tuple[str, str]] = {}
         self.resource_registry: Dict[str, Tuple[str, str]] = {}
@@ -55,6 +59,8 @@ class ProxyRouter:
     async def _handle_client_message(self, message: dict) -> None:
         _LOGGER.debug("Received client message: %s", message)
         if is_request(message):
+            if not await self._ensure_authorized(message):
+                return
             method = message["method"]
             handler = {
                 "initialize": self._handle_initialize,
@@ -359,6 +365,27 @@ class ProxyRouter:
         next_offset = offset + len(sliced)
         next_cursor = self._encode_cursor(next_offset) if next_offset < len(items) else None
         return sliced, next_cursor
+
+    async def _ensure_authorized(self, message: dict) -> bool:
+        params = self._coerce_params_dict(message.get("params"))
+        token = None
+        proxy_meta = params.get("proxy")
+        if isinstance(proxy_meta, dict):
+            token = proxy_meta.get("authToken")
+        if not self.auth_manager.validate(token):
+            await self._send_error(message["id"], -32001, "Unauthorized")
+            return False
+        key = token or "anonymous"
+        if not self.rate_limiter.allow(key):
+            await self._send_error(message["id"], -32002, "Rate limit exceeded")
+            return False
+        if isinstance(proxy_meta, dict):
+            proxy_meta.pop("authToken", None)
+        return True
+
+    @staticmethod
+    def _coerce_params_dict(params: Any) -> Dict[str, Any]:
+        return params if isinstance(params, dict) else {}
 
     def _wrap_tool_descriptor(self, alias: str, tool: dict) -> dict:
         result = deepcopy(tool)

@@ -25,6 +25,8 @@ class ProxyConfig:
     servers: List[ServerConfig]
     log_level: str = "INFO"
     response_timeout: float = 30.0
+    auth_token: Optional[str] = None
+    rate_limit_per_minute: Optional[int] = None
 
 
 def load_config(path: str | Path) -> ProxyConfig:
@@ -55,4 +57,6 @@ def load_config(path: str | Path) -> ProxyConfig:
         servers=servers,
         log_level=str(data.get("log_level", "INFO")).upper(),
         response_timeout=float(data.get("response_timeout", 30.0)),
+        auth_token=data.get("auth_token"),
+        rate_limit_per_minute=data.get("rate_limit_per_minute"),
     )
