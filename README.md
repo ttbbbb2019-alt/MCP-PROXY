@@ -10,6 +10,7 @@
 - **分页游标**：聚合多个 Server 返回的数据后，按照 `cursor`/`limit` 参数完成二次分页；游标使用 base64 编码的 offset，客户端可透明续读。
 - **协议透传**：未知通知自动广播至所有下游 Server，下游发起的请求/通知会被追加元数据后回流给客户端，确保兼容性。
 - **可选鉴权与限流**：通过配置 `auth_token` 与 `rate_limit_per_minute`，可在代理层启用共享 token 校验与简单速率限制，后续可替换为更复杂实现。
+- **结构化日志**：`structured_logging` 设为 `true` 时，所有日志会以 JSON 输出，便于集中式日志系统解析。
 
 ## 快速开始
 
@@ -20,6 +21,7 @@
   "log_level": "INFO",
   "auth_token": "optional-shared-secret",
   "rate_limit_per_minute": 60,
+  "structured_logging": true,
   "response_timeout": 30,
   "servers": [
     {
@@ -98,7 +100,8 @@
 
 - **鉴权**：在配置中添加 `"auth_token": "..."` 后，客户端需要在每次请求时将 token 放在 `params.proxy.authToken` 字段，代理会先校验再继续处理。
 - **限流**：设置 `"rate_limit_per_minute": <int>` 可开启简单的每分钟限流策略，键为 auth token（未配置 token 时默认 `anonymous`）。超限请求会收到 `Rate limit exceeded` 错误。
-- 以上机制都通过 `AuthManager`、`RateLimiter` 以模块化方式实现，后续可替换为更复杂的存储或多租户方案。
+- **结构化日志**：设置 `"structured_logging": true` 后将启用 JSON 日志格式，默认情况下沿用传统文本格式。
+- 以上机制都通过 `AuthManager`、`RateLimiter` 与可插拔的日志格式化实现，后续可替换为更复杂的存储或多租户方案。
 
 ## 限制与后续工作
 

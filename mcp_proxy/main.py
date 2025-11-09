@@ -3,14 +3,15 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-import sys
-from typing import Sequence, Tuple
 import os
 import select
+import sys
+from typing import Sequence, Tuple
 
 from .config import ProxyConfig, load_config
 from .framing import JsonRpcStream
 from .proxy import ProxyRouter
+from .utils.logging_utils import JsonFormatter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,10 +60,16 @@ async def _stdio_streams() -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
 async def run_proxy(config_path: str) -> None:
     """Entry point that wires stdio to JsonRpcStream and starts the router."""
     config = load_config(config_path)
-    logging.basicConfig(
-        level=getattr(logging, config.log_level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-    )
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, config.log_level.upper(), logging.INFO))
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
+    handler = logging.StreamHandler()
+    if config.structured_logging:
+        handler.setFormatter(JsonFormatter())
+    else:
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s"))
+    root_logger.addHandler(handler)
     reader, writer = await _stdio_streams()
     stream = JsonRpcStream(reader, writer, name="client")
     router = ProxyRouter(config, stream)

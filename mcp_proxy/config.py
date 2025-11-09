@@ -27,6 +27,7 @@ class ProxyConfig:
     response_timeout: float = 30.0
     auth_token: Optional[str] = None
     rate_limit_per_minute: Optional[int] = None
+    structured_logging: bool = False
 
 
 def load_config(path: str | Path) -> ProxyConfig:
@@ -59,4 +60,5 @@ def load_config(path: str | Path) -> ProxyConfig:
         response_timeout=float(data.get("response_timeout", 30.0)),
         auth_token=data.get("auth_token"),
         rate_limit_per_minute=data.get("rate_limit_per_minute"),
+        structured_logging=bool(data.get("structured_logging", False)),
     )
