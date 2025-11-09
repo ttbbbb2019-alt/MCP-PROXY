@@ -22,6 +22,8 @@
   "auth_token": "optional-shared-secret",
   "rate_limit_per_minute": 60,
   "structured_logging": true,
+  "healthcheck_interval": 30,
+  "healthcheck_timeout": 5,
   "response_timeout": 30,
   "servers": [
     {
@@ -101,7 +103,8 @@
 - **鉴权**：在配置中添加 `"auth_token": "..."` 后，客户端需要在每次请求时将 token 放在 `params.proxy.authToken` 字段，代理会先校验再继续处理。
 - **限流**：设置 `"rate_limit_per_minute": <int>` 可开启简单的每分钟限流策略，键为 auth token（未配置 token 时默认 `anonymous`）。超限请求会收到 `Rate limit exceeded` 错误。
 - **结构化日志**：设置 `"structured_logging": true` 后将启用 JSON 日志格式，默认情况下沿用传统文本格式。
-- 以上机制都通过 `AuthManager`、`RateLimiter` 与可插拔的日志格式化实现，后续可替换为更复杂的存储或多租户方案。
+- **健康检查**：配置 `"healthcheck_interval"`/`"healthcheck_timeout"` 后，代理会定期对下游 server 发起心跳，异常时自动重启。
+- 以上机制都通过 `AuthManager`、`RateLimiter`、健康检查以及可插拔日志模块实现，后续可替换为更复杂的存储或多租户方案。
 
 ## 限制与后续工作
 

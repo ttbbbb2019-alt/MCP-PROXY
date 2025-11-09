@@ -22,10 +22,14 @@ class UpstreamServer:
         self._stream: Optional[JsonRpcStream] = None
         self._stderr_task: Optional[asyncio.Task] = None
         self._listen_task: Optional[asyncio.Task] = None
+        self._health_task: Optional[asyncio.Task] = None
+        self._restart_lock = asyncio.Lock()
+        self._healthy = True
         self._id_counter = 0
         self._pending: Dict[int, asyncio.Future] = {}
         self._initialized = False
         self.initialize_result: Optional[dict] = None
+        self._last_init_params: Optional[dict] = None
 
     @property
     def alias(self) -> str:
@@ -53,6 +57,7 @@ class UpstreamServer:
         self._stream = JsonRpcStream(self._process.stdout, self._process.stdin, self.alias, prefer_newline=prefer_newline)
         self._stderr_task = asyncio.create_task(self._pump_stderr(), name=f"{self.alias}-stderr")
         self._listen_task = asyncio.create_task(self._listen_loop(), name=f"{self.alias}-listen")
+        self._start_healthcheck()
         _LOGGER.info("Started upstream server %s with pid %s", self.alias, self._process.pid)
 
     async def initialize(self, params: dict) -> dict:
@@ -61,6 +66,7 @@ class UpstreamServer:
         if self._initialized and self.initialize_result:
             return self.initialize_result
         payload = dict(params)
+        self._last_init_params = payload
         client_info = payload.get("clientInfo", {})
         payload["clientInfo"] = {
             "name": f"{client_info.get('name', 'mcp-client')}-through-proxy",
@@ -138,9 +144,12 @@ class UpstreamServer:
             self._listen_task.cancel()
         if self._stderr_task:
             self._stderr_task.cancel()
+        if self._health_task:
+            self._health_task.cancel()
         self._process = None
         self._stream = None
         self._initialized = False
+        self._healthy = False
 
     async def _pump_stderr(self) -> None:
         assert self._process and self._process.stderr
@@ -156,6 +165,7 @@ class UpstreamServer:
             message = await self._stream.read_message()
             if message is None:
                 _LOGGER.info("Upstream server %s closed its stream", self.alias)
+                await self._handle_unhealthy()
                 break
             if is_response(message):
                 pending = self._pending.get(message["id"])
@@ -167,3 +177,53 @@ class UpstreamServer:
                 await self.proxy.forward_server_request(self, message)
             else:
                 await self.proxy.forward_server_notification(self, message)
+
+    def _start_healthcheck(self) -> None:
+        if self._health_task:
+            self._health_task.cancel()
+        interval = getattr(self.proxy.config, "healthcheck_interval", None)
+        timeout = getattr(self.proxy.config, "healthcheck_timeout", None)
+        if not interval or not timeout:
+            return
+        self._health_task = asyncio.create_task(self._health_loop(interval, timeout), name=f"{self.alias}-health")
+
+    async def _health_loop(self, interval: float, timeout: float) -> None:
+        while True:
+            await asyncio.sleep(interval)
+            if not self.running:
+                continue
+            try:
+                await asyncio.wait_for(self.request("ping"), timeout=timeout)
+                if not self._healthy:
+                    _LOGGER.info("Upstream %s recovered", self.alias)
+                    self._healthy = True
+            except Exception as exc:
+                _LOGGER.warning("Health check failed for %s: %s", self.alias, exc)
+                await self._handle_unhealthy()
+
+    async def _handle_unhealthy(self) -> None:
+        self._healthy = False
+        interval = getattr(self.proxy.config, "healthcheck_interval", None)
+        if not interval:
+            return
+        if self._restart_lock.locked():
+            return
+        async with self._restart_lock:
+            try:
+                await self.shutdown()
+            except Exception as exc:
+                _LOGGER.error("Failed to shut down unhealthy server %s: %s", self.alias, exc)
+            backoff = 1.0
+            for attempt in range(5):
+                try:
+                    _LOGGER.info("Attempting restart for %s (attempt %s)", self.alias, attempt + 1)
+                    await self.ensure_started()
+                    await self.initialize(self._last_init_params or {})
+                    self._healthy = True
+                    _LOGGER.info("Restarted server %s", self.alias)
+                    return
+                except Exception as exc:
+                    _LOGGER.error("Restart attempt %s failed for %s: %s", attempt + 1, self.alias, exc)
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, 30)
+            _LOGGER.error("Exceeded restart attempts for %s", self.alias)

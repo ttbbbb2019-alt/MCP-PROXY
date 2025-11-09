@@ -28,6 +28,8 @@ class ProxyConfig:
     auth_token: Optional[str] = None
     rate_limit_per_minute: Optional[int] = None
     structured_logging: bool = False
+    healthcheck_interval: Optional[float] = None
+    healthcheck_timeout: Optional[float] = None
 
 
 def load_config(path: str | Path) -> ProxyConfig:
@@ -61,4 +63,15 @@ def load_config(path: str | Path) -> ProxyConfig:
         auth_token=data.get("auth_token"),
         rate_limit_per_minute=data.get("rate_limit_per_minute"),
         structured_logging=bool(data.get("structured_logging", False)),
+        healthcheck_interval=_get_optional_float(data.get("healthcheck_interval")),
+        healthcheck_timeout=_get_optional_float(data.get("healthcheck_timeout")),
     )
+
+
+def _get_optional_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError("healthcheck values must be numeric if provided")
