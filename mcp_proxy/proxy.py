@@ -85,6 +85,7 @@ class ProxyRouter:
             _LOGGER.debug("Ignoring unknown client payload: %s", message)
 
     async def forward_server_notification(self, server: UpstreamServer, message: dict) -> None:
+        """Relay a notification originating from an upstream server to the client."""
         payload = deepcopy(message)
         params = payload.get("params") or {}
         params = dict(params)
@@ -93,6 +94,7 @@ class ProxyRouter:
         await self.client_stream.send_message(payload)
 
     async def forward_server_request(self, server: UpstreamServer, message: dict) -> None:
+        """Assign a proxy-scoped id to the upstream request and forward it to the client."""
         method = message.get("method")
         if not self._initialized and method == "roots/list":
             _LOGGER.debug("Serving %s pre-initialize roots/list with empty result", server.alias)

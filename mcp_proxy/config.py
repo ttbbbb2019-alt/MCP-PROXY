@@ -8,9 +8,7 @@ from typing import Dict, List, Optional
 
 @dataclass
 class ServerConfig:
-    """
-    Configuration for a downstream MCP server.
-    """
+    """Structured settings describing how to launch a downstream MCP server."""
 
     id: str
     command: List[str]
@@ -22,9 +20,7 @@ class ServerConfig:
 
 @dataclass
 class ProxyConfig:
-    """
-    Top-level proxy configuration composed of multiple downstream servers.
-    """
+    """Top-level configuration containing every upstream server and proxy defaults."""
 
     servers: List[ServerConfig]
     log_level: str = "INFO"
@@ -32,9 +28,7 @@ class ProxyConfig:
 
 
 def load_config(path: str | Path) -> ProxyConfig:
-    """
-    Parse a JSON configuration file into a ProxyConfig instance.
-    """
+    """Parse the JSON config on disk and materialize it into dataclass instances."""
 
     file_path = Path(path)
     data = json.loads(file_path.read_text(encoding="utf-8"))

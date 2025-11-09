@@ -57,6 +57,7 @@ async def _stdio_streams() -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
 
 
 async def run_proxy(config_path: str) -> None:
+    """Entry point that wires stdio to JsonRpcStream and starts the router."""
     config = load_config(config_path)
     logging.basicConfig(
         level=getattr(logging, config.log_level.upper(), logging.INFO),
@@ -79,6 +80,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    """CLI bootstrapper: parse args and run the async proxy loop."""
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
     asyncio.run(run_proxy(args.config))

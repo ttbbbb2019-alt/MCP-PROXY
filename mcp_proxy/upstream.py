@@ -13,9 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class UpstreamServer:
-    """
-    Represents a downstream MCP server process managed by the proxy.
-    """
+    """Encapsulates a single downstream MCP server process and its request lifecycle."""
 
     def __init__(self, config: ServerConfig, proxy: "ProxyRouter"):
         self.config = config
@@ -38,6 +36,7 @@ class UpstreamServer:
         return self._process is not None and self._process.returncode is None
 
     async def ensure_started(self) -> None:
+        """Make sure the subprocess has been spawned and wiring to stdio is ready."""
         if self.running:
             return
         env = os.environ.copy()
@@ -57,6 +56,7 @@ class UpstreamServer:
         _LOGGER.info("Started upstream server %s with pid %s", self.alias, self._process.pid)
 
     async def initialize(self, params: dict) -> dict:
+        """Send the MCP initialize handshake to the server and memoize the response."""
         await self.ensure_started()
         if self._initialized and self.initialize_result:
             return self.initialize_result
@@ -77,6 +77,7 @@ class UpstreamServer:
         return result
 
     async def request(self, method: str, params: Optional[dict] = None, timeout: Optional[float] = None) -> Any:
+        """Send a JSON-RPC request to the server and await the result or propagated error."""
         if not self.running:
             await self.ensure_started()
         assert self._stream is not None
@@ -99,6 +100,7 @@ class UpstreamServer:
         return response.get("result")
 
     async def notify(self, method: str, params: Optional[dict] = None) -> None:
+        """Fire-and-forget helper for upstream notifications (no response expected)."""
         if not self.running:
             await self.ensure_started()
         assert self._stream is not None
@@ -118,6 +120,7 @@ class UpstreamServer:
         await self._stream.send_message(payload)
 
     async def shutdown(self) -> None:
+        """Attempt a graceful shutdown of the subprocess before forcing termination."""
         if not self.running:
             return
         try:
