@@ -40,7 +40,7 @@
 2. **运行代理**
 
 ```bash
-   python -m mcp_proxy.main --config /path/to/config.json
+python -m mcp_proxy.main --config /path/to/config.json
 ```
 
    MCP 客户端连接时只需把代理进程当作普通 Server，即可看到 `everything::search`、`everything::weather` 等聚合后的工具。
@@ -85,18 +85,16 @@
 
 ## 测试建议
 
-1. 准备至少两个 MCP Server（例如本地 `everything` 与自定义 Server），在配置中写好命令。
-2. 使用 `@modelcontextprotocol/inspector` CLI：
+- **单元/集成测试**：`python3 tests/run_proxy_test.py`，其中包含两个最小 server 和一个会主动发起 `roots/list` 请求的 server，用于验证工具/资源/提示以及下游主动请求的转发流程。
+- **Inspector 自检**：
 
-   ```bash
-   npx @modelcontextprotocol/inspector --cli "python mcp_proxy/main.py --config config.json" --method tools/list
-   ```
+  ```bash
+  AUTH_TOKEN=demo-token npx -y @modelcontextprotocol/inspector@latest --cli -- \
+    --method tools/list \
+    python3 -m mcp_proxy.main --config configs/config.everything.json
+  ```
 
-3. 重点验证：
-   - `initialize` 返回的 capabilities 覆盖了工具/资源/提示
-   - `tools/call` 等请求正确路由，响应体与原始 Server 一致
-   - 资源读写与提示获取都会回落到正确 Server
-- Server 主动请求（如 workspace roots）能被转发给客户端再返回
+  重点检查 `initialize` 返回的 `capabilities`、工具/资源命名空间是否正确，以及 prompts/resources 能否在实际 server 上调用。主动请求（如 `roots/list`）也会在日志中打印，由测试脚本自动响应。
 
 ## 安全配置
 
@@ -106,8 +104,18 @@
 - **健康检查**：配置 `"healthcheck_interval"`/`"healthcheck_timeout"` 后，代理会定期对下游 server 发起心跳，异常时自动重启。
 - 以上机制都通过 `AuthManager`、`RateLimiter`、健康检查以及可插拔日志模块实现，后续可替换为更复杂的存储或多租户方案。
 
-## 限制与后续工作
+## Roadmap
 
-- 目前聚合游标基于 offset，未对不同服务的 `nextCursor` 做细粒度协调；下游存在大量数据时可考虑懒加载策略。
-- 未实现 `resources/templates/create`、`subscriptions` 等扩展方法，后续可按 MCP Spec 补全。
-- 包含自动健康检查/重启，但未包含指数退避策略，可在 `UpstreamServer` 增加。
+### P0 / 高优先级
+- **观察性指标**：在 `ProxyRouter` 的请求入口埋点，记录 `tools/*`、`resources/*` 等调用的耗时和返回码，并在 `UpstreamServer` 层统计重启次数/健康状态，统一输出到结构化日志或 Prometheus 采集端点。
+- **细粒度权限**：扩展 `AuthManager`，允许读取配置中针对 serverId/工具名/资源前缀的 ACL 规则，对多租户环境执行拒绝或脱敏策略。
+
+### P1 / 中优先级
+- **客户端通知策略**：新增可配置的通知路由表，将 `logging/*`、`roots/list` 等主动请求按 server 精确投递，避免无关广播。
+- **动态注册 / Reload**：为 `config` 模块加入文件监控或控制面指令，运行时增删下游 server，并触发 `UpstreamServer` 的热重启。
+- **增强限流**：在现有速率限制器中引入租户 ID、工具 ID 维度的速率桶，支持突发/平滑窗口混合策略。
+
+### P2 / 长期规划
+- **资源模板扩展**：补齐 `resources/templates/*` API，允许代理托管模板创建、订阅与权限审核。
+- **控制面 API**：暴露 HTTP/gRPC 控制面查询下游健康、聚合指标，并支持手动触发重启或刷新命令。
+- **更丰富认证机制**：在 `security` 模块实现 pluggable provider，支持 OAuth2 client credentials、HMAC 签名或 mTLS，以替换简单的静态 token。

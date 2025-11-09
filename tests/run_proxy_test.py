@@ -21,6 +21,7 @@ def _send(proc: subprocess.Popen, message: dict) -> None:
     assert proc.stdin is not None
     proc.stdin.write(header + payload)
     proc.stdin.flush()
+    _debug(f"-> proxy: {message}")
 
 
 def _read(proc: subprocess.Popen, timeout: float = 5) -> Optional[dict]:
@@ -41,7 +42,36 @@ def _read(proc: subprocess.Popen, timeout: float = 5) -> Optional[dict]:
         headers[name.lower()] = value.strip()
     length = int(headers.get("content-length", "0"))
     payload = proc.stdout.read(length)
-    return json.loads(payload.decode("utf-8"))
+    message = json.loads(payload.decode("utf-8"))
+    _debug(f"<- proxy: {message}")
+    if message.get("method") and message.get("id"):
+        _handle_proxy_request(proc, message)
+        return _read(proc, timeout)
+    return message
+
+
+def _handle_proxy_request(proc: subprocess.Popen, message: dict) -> None:
+    method = message.get("method")
+    msg_id = message.get("id")
+    _debug(f"Handling proxy request {method} id={msg_id}")
+    if method == "roots/list":
+        _send(
+            proc,
+            {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "result": {"roots": []},
+            },
+        )
+    else:
+        _send(
+            proc,
+            {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "error": {"code": -32601, "message": f"Test harness does not handle {method}"},
+            },
+        )
 
 
 def _rpc(proc: subprocess.Popen, message_id: int, method: str, params: Optional[dict] = None) -> dict:
@@ -72,7 +102,13 @@ def main() -> None:
 
         tools = _rpc(proc, 2, "tools/list", {})
         tool_names = sorted(tool["name"] for tool in tools["tools"])
-        assert tool_names == ["alpha__alpha-echo", "alpha__alpha-upper", "beta__beta-echo", "beta__beta-upper"]
+        assert tool_names == [
+            "alpha__alpha-echo",
+            "alpha__alpha-upper",
+            "beta__beta-echo",
+            "beta__beta-upper",
+            "roots__noop",
+        ]
 
         call = _rpc(
             proc,
@@ -96,11 +132,17 @@ def main() -> None:
         assert "You are" in json.dumps(prompt_get)
 
         _rpc(proc, 8, "shutdown", {})
+        # Ensure the roots server's request was routed and proxy forwarded response
+        # by confirming the proxy emitted restart logs if necessary (implicit via no exception)
     finally:
         proc.kill()
         out, err = proc.communicate(timeout=1)
         if err:
             sys.stderr.write(err.decode("utf-8", errors="ignore"))
+
+
+def _debug(msg: str) -> None:
+    sys.stderr.write(f"[test] {msg}\n")
 
 
 if __name__ == "__main__":

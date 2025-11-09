@@ -9,6 +9,10 @@
     {
       "id": "beta",
       "command": ["python3", "tests/servers/minimal_server.py", "beta"]
+    },
+    {
+      "id": "roots",
+      "command": ["python3", "tests/servers/roots_server.py"]
     }
   ]
 }
